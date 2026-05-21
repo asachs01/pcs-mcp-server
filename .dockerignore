@@ -1,0 +1,57 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Git and GitHub
+.git
+.gitignore
+.github
+
+# Project management
+.taskmaster
+
+# Tests and development
+test
+tests
+scripts
+coverage
+*.test.ts
+*.test.js
+
+# Documentation (except README)
+*.md
+!README.md
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.test
+.env.*.local
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Other config files
+.eslintrc*
+.prettierrc*
+vitest.config.*

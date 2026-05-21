@@ -1,0 +1,22 @@
+name: pcs-mcp-server
+services:
+  - name: mcp
+    image:
+      registry_type: GHCR
+      registry: asachs01
+      repository: pcs-mcp-server
+      tag: latest
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    envs:
+      - key: PCO_PAT_APP_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: PCO_PAT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: TRANSPORT
+        value: http
+    health_check:
+      http_path: /health

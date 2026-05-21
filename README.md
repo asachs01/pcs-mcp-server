@@ -1,6 +1,15 @@
 # @canticle/pcs-mcp-server
 
 [![CI](https://github.com/asachs01/pcs-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/asachs01/pcs-mcp-server/actions/workflows/ci.yml)
+[![Deploy to DigitalOcean](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/asachs01/pcs-mcp-server/tree/main)
+
+## Docker
+
+```bash
+docker pull ghcr.io/asachs01/pcs-mcp-server:latest
+```
+
+**Deploy to Cloudflare Workers:** (Phase 4 — placeholder)
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for **Planning Center Services**. Plan worship services, manage songs, and schedule volunteers through natural-language conversations in any MCP-compatible client (Claude Desktop, Claude Code, Claude.ai connectors, MCP Inspector, etc.).
 

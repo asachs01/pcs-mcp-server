@@ -1,0 +1,5 @@
+name = "pcs-mcp-server"
+# TODO: Worker adapter is Phase 4 — this config is a placeholder for the deploy button
+main = "dist/worker.js"
+compatibility_date = "2026-05-21"
+compatibility_flags = ["nodejs_compat"]

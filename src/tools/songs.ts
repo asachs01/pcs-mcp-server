@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext, ToolModule } from "./registry.js";
 import type { JsonApiCollection, JsonApiSingle } from "../pco/types.js";
 import type { SongAttrs, ArrangementAttrs } from "../pco/songs.types.js";
+import { elicitChoice, unsupportedElicitationError, type ElicitResult } from "../elicitation/helpers.js";
 
 const InputSchema = {
   action: z
@@ -29,6 +30,61 @@ const InputSchema = {
 
 const tool: ToolModule = {
   register(server: McpServer, ctx: ToolContext) {
+    // Helper functions that capture the server instance for elicitation
+    async function pickArrangement(songId: string): Promise<ElicitResult<string | null>> {
+      const res = await ctx.pco.get<JsonApiCollection<ArrangementAttrs>>(
+        `/services/v2/songs/${songId}/arrangements`,
+        { per_page: 50 }
+      );
+
+      if (res.data.length === 0) {
+        return { status: "accepted", value: null };
+      }
+
+      if (res.data.length === 1) {
+        return { status: "accepted", value: res.data[0]!.id };
+      }
+
+      // Multiple arrangements - elicit choice
+      const options = res.data.map(arrangement => ({
+        value: arrangement.id,
+        label: arrangement.attributes.name,
+        description: [
+          arrangement.attributes.bpm ? `${arrangement.attributes.bpm} BPM` : null,
+          arrangement.attributes.length ? `${arrangement.attributes.length}s` : null,
+          arrangement.attributes.chord_chart_key ? `Key: ${arrangement.attributes.chord_chart_key}` : null
+        ].filter(Boolean).join(", ") || undefined
+      }));
+
+      return elicitChoice(server, {
+        message: "Multiple arrangements found for this song. Which arrangement would you like to use?",
+        title: "Select Arrangement",
+        options
+      });
+    }
+
+    async function pickKey(defaultKey?: string): Promise<ElicitResult<string>> {
+      const canonicalKeys = ["C", "D", "E", "F", "G", "A", "B", "Bb", "Eb", "Ab", "Db", "Gb", "F#", "C#", "Am", "Em", "Dm", "Gm", "Bm", "F#m", "C#m"];
+
+      const options = canonicalKeys.map(key => {
+        const isMajor = !key.endsWith("m");
+        const baseKey = key.endsWith("m") ? key.slice(0, -1) : key;
+        const suffix = isMajor ? " Major" : " Minor";
+        const isDefault = key === defaultKey;
+
+        return {
+          value: key,
+          label: `${baseKey}${suffix}${isDefault ? " (default)" : ""}`,
+        };
+      });
+
+      return elicitChoice(server, {
+        message: "What key would you like for this song?",
+        title: "Select Key",
+        options
+      });
+    }
+
     server.registerTool(
       "manage_songs",
       {
@@ -115,6 +171,54 @@ const tool: ToolModule = {
               return errorResult("serviceTypeId is required (or set PCO_DEFAULT_SERVICE_TYPE_ID).");
             }
 
+            let finalArrangementId = arrangementId;
+            let finalKey = key;
+
+            // Handle arrangement disambiguation if not provided
+            if (!arrangementId) {
+              const arrangementResult = await pickArrangement(songId);
+
+              switch (arrangementResult.status) {
+                case "accepted":
+                  finalArrangementId = arrangementResult.value ?? undefined;
+                  break;
+                case "declined":
+                case "cancelled":
+                  return errorResult("Song addition cancelled.");
+                case "unsupported":
+                  return unsupportedElicitationError("arrangementId", "Use list_arrangements to see available arrangements for this song");
+              }
+            }
+
+            // Handle key disambiguation if not provided
+            if (!key) {
+              // Try to get the default key from the arrangement if we have one
+              let defaultKey: string | undefined;
+              if (finalArrangementId) {
+                try {
+                  const arrangementRes = await ctx.pco.get<JsonApiSingle<ArrangementAttrs>>(
+                    `/services/v2/songs/${songId}/arrangements/${finalArrangementId}`
+                  );
+                  defaultKey = arrangementRes.data.attributes.chord_chart_key ?? undefined;
+                } catch {
+                  // Ignore errors fetching arrangement details
+                }
+              }
+
+              const keyResult = await pickKey(defaultKey);
+
+              switch (keyResult.status) {
+                case "accepted":
+                  finalKey = keyResult.value;
+                  break;
+                case "declined":
+                case "cancelled":
+                  return errorResult("Song addition cancelled.");
+                case "unsupported":
+                  return unsupportedElicitationError("key", "Specify a key like 'D', 'Bb', 'F#m', etc.");
+              }
+            }
+
             const body: any = {
               data: {
                 type: "Item",
@@ -132,17 +236,17 @@ const tool: ToolModule = {
               },
             };
 
-            if (arrangementId) {
+            if (finalArrangementId) {
               body.data.relationships.arrangement = {
                 data: {
                   type: "Arrangement",
-                  id: arrangementId,
+                  id: finalArrangementId,
                 },
               };
             }
 
-            if (key) {
-              body.data.attributes.key_name = key;
+            if (finalKey) {
+              body.data.attributes.key_name = finalKey;
             }
 
             if (position !== undefined) {
