@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { OAuthClient, type OAuthCredentials, type OAuthTokens } from "../src/pco/oauth.js";
 import { PatAuthProvider, OAuthAuthProvider } from "../src/pco/auth-provider.js";
+import { MemoryTokenStorage } from "../src/pco/token-storage.js";
 
 describe("OAuthClient", () => {
   const credentials: OAuthCredentials = {
@@ -65,7 +66,8 @@ describe("OAuthAuthProvider", () => {
       refresh: vi.fn(),
     } as unknown as OAuthClient;
 
-    const provider = new OAuthAuthProvider(mockClient, mockTokens);
+    const storage = new MemoryTokenStorage();
+    const provider = new OAuthAuthProvider(mockClient, mockTokens, storage);
 
     const header = await provider.getAuthHeader();
 
@@ -90,7 +92,8 @@ describe("OAuthAuthProvider", () => {
       refresh: vi.fn().mockResolvedValue(newTokens),
     } as unknown as OAuthClient;
 
-    const provider = new OAuthAuthProvider(mockClient, expiringSoonTokens);
+    const storage = new MemoryTokenStorage();
+    const provider = new OAuthAuthProvider(mockClient, expiringSoonTokens, storage);
 
     const header = await provider.getAuthHeader();
 

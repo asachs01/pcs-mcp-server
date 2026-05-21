@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { PatAuthProvider, type AuthProvider } from "./pco/auth-provider.js";
+import { PatAuthProvider, OAuthAuthProvider, type AuthProvider } from "./pco/auth-provider.js";
+import { OAuthClient } from "./pco/oauth.js";
+import { FileTokenStorage, EnvTokenStorage, type TokenStorage } from "./pco/token-storage.js";
 
 const RawConfig = z.object({
   PCO_PAT_APP_ID: z.string().optional(),
@@ -71,11 +73,37 @@ function resolveAuth(env: z.infer<typeof RawConfig>): AppConfig["auth"] {
   );
 }
 
+export interface OAuthSupport {
+  client: OAuthClient;
+  storage: TokenStorage;
+}
+
+export function createOAuthSupport(config: AppConfig): OAuthSupport {
+  if (config.auth.mode !== "oauth") {
+    throw new Error("createOAuthSupport called with non-OAuth config");
+  }
+
+  // OAuth mode - construct client and storage
+  const client = new OAuthClient({
+    clientId: config.auth.clientId,
+    clientSecret: config.auth.clientSecret,
+    redirectUri: config.auth.redirectUri,
+  });
+
+  // Pick storage based on env: if PCO_OAUTH_TOKENS is set, use EnvTokenStorage; otherwise FileTokenStorage
+  const storage = process.env.PCO_OAUTH_TOKENS
+    ? new EnvTokenStorage()
+    : new FileTokenStorage();
+
+  return { client, storage };
+}
+
 export function createAuthProvider(config: AppConfig): AuthProvider {
   if (config.auth.mode === "pat") {
     return new PatAuthProvider(config.auth.appId, config.auth.secret);
   }
 
-  // OAuth mode requires initial tokens — wire token storage before constructing the auth provider
-  throw new Error("OAuth mode requires initial tokens — wire token storage before constructing the auth provider. See README OAuth section.");
+  // Use the shared OAuth support logic
+  const { client, storage } = createOAuthSupport(config);
+  return new OAuthAuthProvider(client, null, storage);
 }

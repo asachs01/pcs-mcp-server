@@ -1,4 +1,3 @@
-import { request } from "undici";
 import type { Logger } from "../logger.js";
 import { RateLimiter } from "./rate-limiter.js";
 import type { AuthProvider } from "./auth-provider.js";
@@ -57,7 +56,7 @@ export class PcoClient {
 
     this.logger.debug("pco request", { method, url: url.toString() });
 
-    const res = await request(url.toString(), {
+    const res = await fetch(url.toString(), {
       method: method as "GET" | "POST" | "PATCH" | "DELETE",
       headers: {
         Authorization: await this.authProvider.getAuthHeader(),
@@ -67,14 +66,14 @@ export class PcoClient {
       body: opts.body ? JSON.stringify(opts.body) : undefined,
     });
 
-    const text = await res.body.text();
+    const text = await res.text();
     const parsed = text ? safeJson(text) : undefined;
 
-    if (res.statusCode >= 400) {
+    if (res.status >= 400) {
       const err = new Error(
-        `Planning Center API ${res.statusCode} on ${method} ${path}`,
+        `Planning Center API ${res.status} on ${method} ${path}`,
       ) as PcoError;
-      err.status = res.statusCode;
+      err.status = res.status;
       err.body = parsed ?? text;
       throw err;
     }

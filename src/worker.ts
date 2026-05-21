@@ -87,14 +87,17 @@ async function handlePostRequest(request: Request, env: Env): Promise<Response> 
   if (sessionId && transports.has(sessionId)) {
     transport = transports.get(sessionId);
   } else if (!sessionId && isInitializeRequest(body)) {
-    // Return an error indicating Workers limitations
+    // The PCO client itself runs on Workers (fetch-based since the undici
+    // migration), but the MCP SDK's StreamableHTTPServerTransport is
+    // Express-coupled. A Workers-native transport adapter is the remaining
+    // piece; see TODO at the bottom of this file.
     return Response.json({
       jsonrpc: "2.0",
       error: {
         code: -32000,
-        message: "Planning Center client requires Node.js environment",
+        message: "Workers transport adapter not yet implemented",
         data: {
-          details: "This Cloudflare Workers deployment cannot access Planning Center APIs due to undici dependency. Use the Node.js version for full functionality.",
+          details: "PCO API access works in Workers; the MCP SDK's Streamable HTTP transport currently assumes Node http.Request/Response. Use the Node.js Docker image for full functionality.",
           workerRuntime: "cloudflare-workers",
           limitedMode: true
         }
@@ -109,8 +112,6 @@ async function handlePostRequest(request: Request, env: Env): Promise<Response> 
     }, { status: 400 });
   }
 
-  // This code path won't be reached in practice due to the undici limitation above,
-  // but shows how it would work if we had a fetch-compatible client
   if (!transport) {
     return Response.json({
       jsonrpc: "2.0",
@@ -186,7 +187,9 @@ function validateCredentials(env: Env): string | null {
   return null;
 }
 
-// TODO: Phase 4.1 - Replace undici with fetch-based HTTP client to enable full Workers compatibility
-// The current implementation returns 503 for all MCP tool requests due to undici dependency
-// in src/pco/client.ts. Once that's migrated to use fetch(), this worker can build and serve
-// the full MCP server using buildServer() from src/server.ts.
+// TODO: Workers-native Streamable HTTP transport adapter. The SDK's
+// StreamableHTTPServerTransport expects Node http.IncomingMessage / ServerResponse;
+// translating Workers Request/Response and handling SSE streaming via the
+// Web Streams API is the remaining work to make this deployment fully functional.
+// PCO API access already works here (the client uses global fetch since the
+// undici migration).

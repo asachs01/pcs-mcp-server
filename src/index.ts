@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { loadConfig } from "./config.js";
+import { loadConfig, createOAuthSupport } from "./config.js";
 import { createLogger } from "./logger.js";
 import { buildServer } from "./server.js";
 import { startStdio } from "./transports/stdio.js";
@@ -19,7 +19,12 @@ async function main() {
   if (config.transport === "stdio") {
     await startStdio(server, logger);
   } else {
-    await startHttp(server, config.port, logger);
+    // For HTTP transport with OAuth, provide OAuth support
+    const oauthSupport = config.auth.mode === "oauth"
+      ? createOAuthSupport(config)
+      : undefined;
+
+    await startHttp(server, config.port, logger, oauthSupport);
   }
 }
 

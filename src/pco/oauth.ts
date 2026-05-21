@@ -1,4 +1,3 @@
-import { request } from "undici";
 import { randomUUID } from "node:crypto";
 
 export interface OAuthCredentials {
@@ -48,7 +47,7 @@ export class OAuthClient {
       redirect_uri: this.credentials.redirectUri,
     });
 
-    const response = await request(`${this.baseUrl}/oauth/token`, {
+    const response = await fetch(`${this.baseUrl}/oauth/token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -57,12 +56,12 @@ export class OAuthClient {
       body: body.toString(),
     });
 
-    if (response.statusCode >= 400) {
-      const errorText = await response.body.text();
-      throw new Error(`Token exchange failed: ${response.statusCode} ${errorText}`);
+    if (response.status >= 400) {
+      const errorText = await response.text();
+      throw new Error(`Token exchange failed: ${response.status} ${errorText}`);
     }
 
-    const tokenData = await response.body.json() as {
+    const tokenData = await response.json() as {
       access_token: string;
       refresh_token: string;
       expires_in: number;
@@ -86,7 +85,7 @@ export class OAuthClient {
       refresh_token: refreshToken,
     });
 
-    const response = await request(`${this.baseUrl}/oauth/token`, {
+    const response = await fetch(`${this.baseUrl}/oauth/token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -95,12 +94,12 @@ export class OAuthClient {
       body: body.toString(),
     });
 
-    if (response.statusCode >= 400) {
-      const errorText = await response.body.text();
-      throw new Error(`Token refresh failed: ${response.statusCode} ${errorText}`);
+    if (response.status >= 400) {
+      const errorText = await response.text();
+      throw new Error(`Token refresh failed: ${response.status} ${errorText}`);
     }
 
-    const tokenData = await response.body.json() as {
+    const tokenData = await response.json() as {
       access_token: string;
       refresh_token: string;
       expires_in: number;
