@@ -1,0 +1,300 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "Initialize TypeScript project scaffold and package metadata",
+        "description": "Set up the Node.js/TypeScript project structure, scripts, and package metadata for the MCP server.",
+        "details": "Create the repository baseline under the specified structure: src/, test/, Dockerfile, .do/, wrangler.toml, tsconfig.json, package.json, and README.md placeholders. Configure TypeScript for modern Node 22 runtime and ESM-compatible output if needed by the chosen MCP SDK. Add scripts for build, dev, test, lint, and start. Set the npm package name to @canticle/pcs-mcp-server per PRD, and ensure the package can be published to GitHub Package Registry. Include environment-based configuration loading and a clean entrypoint contract for both stdio and HTTP transports. Pseudo-code: `main() { read env; choose transport; create server; start transport; }`.",
+        "testStrategy": "Verify `npm install`, `npm run build`, and `npm start` work locally. Confirm generated dist files exist and package metadata resolves correctly. Run a smoke test that imports the entrypoint without runtime errors.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "in-progress",
+        "subtasks": [],
+        "updatedAt": "2026-05-21T14:13:23.308Z"
+      },
+      {
+        "id": "2",
+        "title": "Implement shared configuration and environment validation",
+        "description": "Create a centralized configuration layer for transport, auth, logging, port, and default service type settings.",
+        "details": "Add a config module that reads and validates all environment variables from the PRD: PCO_PAT_APP_ID, PCO_PAT_SECRET, PCO_OAUTH_CLIENT_ID, PCO_OAUTH_CLIENT_SECRET, PCO_OAUTH_REDIRECT_URI, TRANSPORT, PORT, LOG_LEVEL, and PCO_DEFAULT_SERVICE_TYPE_ID. Enforce the rule that either PAT credentials or OAuth credentials are provided, not both, with clear startup errors. Normalize defaults such as TRANSPORT=stdio and PORT=3000. Pseudo-code: `config = parseEnv(); assertExactlyOneAuthMode(config); return normalizedConfig;`.",
+        "testStrategy": "Unit test valid and invalid env combinations, including missing auth, both auth modes present, invalid transport values, and default fallbacks. Confirm startup fails fast with descriptive messages when configuration is invalid.",
+        "priority": "high",
+        "dependencies": [
+          "1"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "3",
+        "title": "Build Planning Center auth module for PAT and OAuth 2.0",
+        "description": "Implement authentication support for Planning Center Services using both Personal Access Tokens and OAuth 2.0.",
+        "details": "Create src/pco/auth.ts to produce authenticated request headers for PAT and OAuth. For PAT, use HTTP Basic Auth with the provided app ID and secret. For OAuth, implement authorization URL, token URL, scope handling, redirect URI support, and token exchange/refresh flow suitable for MCP deployments. Keep the module transport-agnostic so it works in stdio and HTTP modes. Pseudo-code: `if patMode -> basicAuthHeader(); else -> oauthClient.getAccessToken();`.",
+        "testStrategy": "Mock authentication requests and verify correct headers and token exchange behavior. Test PAT and OAuth config paths separately. Add regression tests that ensure secrets are never logged.",
+        "priority": "high",
+        "dependencies": [
+          "2"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "4",
+        "title": "Define PCO JSON:API type models and parsing helpers",
+        "description": "Create strongly typed models for Planning Center Services JSON:API responses and common parsing utilities.",
+        "details": "Add src/pco/types.ts with minimal but practical types for service types, plans, plan items, songs, arrangements, keys, teams, team members, and people. Include reusable JSON:API envelope parsing helpers to extract data, included relationships, and error payloads. Support include-based responses because the PRD explicitly requires batched includes for efficiency. Pseudo-code: `parseJsonApi<T>(response) => { data, included, meta, links }`.",
+        "testStrategy": "Feed mocked JSON:API payloads into parsers and verify typed outputs for single-resource and collection responses, including relationship expansion and error handling.",
+        "priority": "medium",
+        "dependencies": [
+          "3"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "5",
+        "title": "Implement rate-limited PCO API client with retry/backoff",
+        "description": "Create a resilient API client that handles request throttling, batching, and retries for Planning Center Services.",
+        "details": "Build src/pco/client.ts and src/pco/rate-limiter.ts to enforce the 100 requests per 20-second window limit. Use a queue-based throttler with exponential backoff on 429 responses and support include parameters to reduce call count. Expose small helper methods for GET/POST/PATCH to the Services v2 API base URL. Pseudo-code: `enqueue(req) -> waitForSlot() -> fetch() -> if429 backoffAndRetry()`. Include sane timeouts and error mapping for API failures.",
+        "testStrategy": "Simulate bursts above the limit and confirm the queue delays requests. Mock 429 responses and verify exponential backoff/retry behavior. Validate that include parameters are passed through correctly.",
+        "priority": "high",
+        "dependencies": [
+          "3",
+          "4"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "6",
+        "title": "Add relative date resolution utilities",
+        "description": "Implement date parsing and normalization for user phrases like this Sunday and next week.",
+        "details": "Create src/utils/dates.ts to resolve relative dates into concrete ISO dates using the server's local timezone or an explicit configured timezone if later added. Support ambiguous date detection so the elicitation flow can request clarification when needed. Ensure date helpers can be reused by plan and team actions. Pseudo-code: `resolveRelativeDate(input) -> { date, ambiguous, candidates }`.",
+        "testStrategy": "Unit test common phrases such as today, tomorrow, this Sunday, next week, and explicit ISO dates. Verify ambiguous phrases return clarification metadata rather than guessing.",
+        "priority": "medium",
+        "dependencies": [
+          "2"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "7",
+        "title": "Add musical key validation and normalization helpers",
+        "description": "Implement validation for PCO-accepted song keys and normalization for key inputs.",
+        "details": "Create src/utils/keys.ts to validate keys such as C, D, Eb, Bb, F#m, and other Planning Center-compatible values. Normalize user-entered variants and reject invalid entries with actionable errors. This module will be used by song actions and elicitation prompts. Pseudo-code: `normalizeKey(input) -> canonicalKey | error`.",
+        "testStrategy": "Unit test valid major/minor keys, enharmonic spellings, lowercase input, and invalid strings. Confirm the validator returns canonical keys accepted by downstream API calls.",
+        "priority": "medium",
+        "dependencies": [
+          "3"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "8",
+        "title": "Implement reusable elicitation helpers and fallback behavior",
+        "description": "Create helper patterns for MCP elicitation and graceful degradation when clients do not support it.",
+        "details": "Add src/elicitation/helpers.ts to standardize elicitation prompts, schema generation, cancel handling, and fallback errors when elicitation is unavailable. Support the PRD scenarios: service type selection, ambiguous song selection, missing key, plan date clarification, and person assignment conflicts. Pseudo-code: `if clientSupportsElicitation() prompt(schema) else throw descriptiveMissingParamError()`.",
+        "testStrategy": "Use mocked MCP server capabilities to verify elicitation prompts are emitted correctly. Test the non-elicitation fallback path returns actionable error messages with required IDs or fields.",
+        "priority": "high",
+        "dependencies": [
+          "2",
+          "6",
+          "7"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "9",
+        "title": "Build lazy-loading tool registry",
+        "description": "Create the hierarchical tool registry that loads domain modules on demand.",
+        "details": "Implement src/tools/registry.ts with a map of Level 0 tool names to dynamic imports for plans, songs, team, and info modules. Cache loaded modules after first use to reduce startup time and memory footprint. This registry should expose only the high-level tools to MCP listTools while routing action subcommands internally. Pseudo-code: `registry[name] = () => import(module); module = await registry[name](); return module.handle(action,args);`.",
+        "testStrategy": "Unit test that modules are not imported until invoked, then cached on subsequent calls. Confirm unknown tool names produce a deterministic error.",
+        "priority": "high",
+        "dependencies": [
+          "1",
+          "2"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "10",
+        "title": "Set up MCP server core and tool registration",
+        "description": "Create the core MCP server instance and register the Level 0 domain tools.",
+        "details": "Implement src/server.ts to initialize the MCP server, expose listTools, and wire tool call routing through the lazy-loading registry. Register only plan_services, manage_songs, manage_team, and pcs_info at the top level, with action enums handled internally by each module. Ensure server initialization includes capability negotiation for elicitation. Pseudo-code: `server = new McpServer(); registerTools(server); server.onCallTool(routeThroughRegistry);`.",
+        "testStrategy": "Run an MCP inspector smoke test to confirm listTools returns only Level 0 tools and that a sample routed call reaches the correct module. Validate tool schemas appear as expected.",
+        "priority": "high",
+        "dependencies": [
+          "8",
+          "9"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "11",
+        "title": "Implement stdio transport for local MCP clients",
+        "description": "Wire the server to run over stdin/stdout for Claude Desktop and Claude Code.",
+        "details": "Create src/transports/stdio.ts using the current MCP SDK stdio transport. Ensure process lifecycle is clean, logs go to stderr, and the transport can be selected as the default mode. Keep behavior compatible with child-process execution. Pseudo-code: `transport = new StdioTransport(); await server.connect(transport);`.",
+        "testStrategy": "Launch the server in stdio mode and connect with MCP Inspector or a mocked stdio client. Verify requests/responses flow correctly and that stdout remains protocol-only.",
+        "priority": "high",
+        "dependencies": [
+          "10"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "12",
+        "title": "Implement Streamable HTTP transport with session support",
+        "description": "Add production-ready Streamable HTTP transport for remote/cloud deployments.",
+        "details": "Create src/transports/http.ts using the MCP SDK StreamableHTTPServerTransport with session management and resumability. Expose a /health endpoint for deployment checks. Select the transport via TRANSPORT=http and PORT. Ensure the HTTP path is compatible with MCP clients and reverse proxies. Pseudo-code: `app.get('/health'); app.post('/mcp', streamableHttpHandler);`.",
+        "testStrategy": "Start the server in HTTP mode and validate health checks, session initialization, streaming request handling, and reconnect/resume flows using MCP Inspector.",
+        "priority": "high",
+        "dependencies": [
+          "10"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "13",
+        "title": "Implement pcs_info tool module",
+        "description": "Provide read-only discovery actions for service types, teams, tag groups, and authenticated user info.",
+        "details": "Create src/tools/info.ts with actions list_service_types, list_teams, list_tag_groups, and whoami. Use the PCO client and include parameters where possible. Respect PCO_DEFAULT_SERVICE_TYPE_ID by skipping service type selection when only one org context is configured. Pseudo-code: `switch(action){ case list_service_types: return client.get('/service_types') ... }`.",
+        "testStrategy": "Unit test each action against mocked API responses. Verify whoami returns the current authenticated identity and that list_teams requires a service type context.",
+        "priority": "medium",
+        "dependencies": [
+          "5",
+          "9"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "14",
+        "title": "Implement plan_services actions for listing and retrieving plans",
+        "description": "Add the core planning workflow actions for getting plans and plan details.",
+        "details": "Create src/tools/plans.ts with list_plans, get_plan, get_plan_items, create_plan, update_plan, and reorder_items, even if MVP prioritizes the read paths first. Handle date resolution, service type selection, and plan ID validation. Use include parameters when retrieving plan details and items to keep API calls low. Pseudo-code: `if action==='list_plans' resolve serviceType/date range; fetch plans; if ambiguous -> elicit`.",
+        "testStrategy": "Test list/get flows with mocked plans, including date-range filtering, plan detail retrieval with included items, and reorder payload generation. Confirm ambiguous service type/date cases trigger elicitation or fallback errors.",
+        "priority": "high",
+        "dependencies": [
+          "6",
+          "8",
+          "9",
+          "13"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "15",
+        "title": "Implement song search and retrieval actions",
+        "description": "Add song library lookup functionality with exact search and client-side fuzzy fallback.",
+        "details": "Create src/tools/songs.ts with search_songs, get_song_details, and list_arrangements. Use Planning Center's search endpoints first, then apply client-side fuzzy matching when exact results are sparse or ambiguous. Normalize author and CCLI filters if provided. Pseudo-code: `results = await client.searchSongs(query); if lowConfidence(results) results = fuzzyRank(results, query);`.",
+        "testStrategy": "Unit test exact search, fuzzy fallback ranking, author/CCLI filtering, and song detail retrieval. Verify multiple close matches are returned in a stable, user-friendly order.",
+        "priority": "high",
+        "dependencies": [
+          "5",
+          "7",
+          "8",
+          "9"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "16",
+        "title": "Implement adding songs to plans and key assignment flow",
+        "description": "Support adding a song to a service plan, choosing an arrangement, and setting the song key.",
+        "details": "Extend src/tools/songs.ts with add_song_to_plan, set_song_key, and remove_song actions. Implement the full workflow: select song, optionally elicit arrangement, validate or elicit key, then add/update the plan item. Keep the action interface aligned with the PRD's hierarchical routing. Pseudo-code: `if missingArrangement or missingKey -> elicit(); post plan item; return created item`.",
+        "testStrategy": "Test adding songs with and without explicit arrangement/key, updating keys, and removing plan items. Confirm invalid keys are rejected and elicitation is invoked when required.",
+        "priority": "high",
+        "dependencies": [
+          "14",
+          "15"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "17",
+        "title": "Implement team management and assignment actions",
+        "description": "Add team member and scheduling actions for assignments, availability, and plan rosters.",
+        "details": "Create src/tools/team.ts with assign_person, check_availability, list_team_members, list_plan_people, send_scheduling_request, and accept_decline. Include plan/person/team lookups, conflict detection, and optional elicitation for ambiguous people names or assignment conflicts. Pseudo-code: `if conflict -> elicitOverrideOrAlternative(); else create assignment`.",
+        "testStrategy": "Mock assignments, roster retrieval, availability checks, and request sending. Verify conflict scenarios prompt for confirmation or alternate dates, and that roster/listing actions return expected people collections.",
+        "priority": "high",
+        "dependencies": [
+          "6",
+          "8",
+          "9",
+          "13",
+          "14"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "18",
+        "title": "Add OAuth multi-user deployment flow and session integration",
+        "description": "Complete OAuth 2.0 support for multi-user deployments and integrate it with HTTP transport session initialization.",
+        "details": "Enhance auth and HTTP transport so Streamable HTTP deployments can use MCP's ProxyOAuthServerProvider or an equivalent MCP SDK-compatible OAuth flow. Support authorization, callback handling, token persistence for active sessions, and scope selection for services and people. Keep PAT support intact for local use. Pseudo-code: `if oauthMode then initialize proxyOAuthProvider(); onSessionStart attachToken();`.",
+        "testStrategy": "Test OAuth authorization URL generation, callback exchange, and token use during API calls. Validate that unauthenticated sessions are redirected into the OAuth flow and that PAT mode remains unaffected.",
+        "priority": "high",
+        "dependencies": [
+          "3",
+          "12"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "19",
+        "title": "Add deployment artifacts for Docker, DigitalOcean, and Cloudflare Workers",
+        "description": "Prepare production deployment assets and platform-specific configuration files.",
+        "details": "Finalize the Dockerfile to match the PRD multi-stage build, defaulting to HTTP transport on port 3000. Add .do/app.yaml with the required image, env vars, and /health check. Add wrangler.toml for Cloudflare Workers deployment using the Agents SDK and Durable Objects for session state and elicitation persistence. Ensure these assets align with the package entrypoint and compiled dist output. Pseudo-code: `build -> prune -> run as non-root user`.",
+        "testStrategy": "Build the Docker image and run it locally. Validate DigitalOcean and Cloudflare config files parse successfully. Confirm the container starts on port 3000 and responds to /health.",
+        "priority": "medium",
+        "dependencies": [
+          "12",
+          "18"
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": "20",
+        "title": "Write documentation, examples, CI, and integration tests",
+        "description": "Complete README usage guidance, CI publishing, and end-to-end validation for MCP clients and deployments.",
+        "details": "Expand README with installation, Claude Desktop config, Claude Code config, transport selection, auth modes, and example tool usage. Add CI workflows for build/test, Docker publishing to GHCR, and npm publishing to GitHub Package Registry. Create integration tests for MCP Inspector and mocked PCO sandbox interactions across plans, songs, and team actions. Include notes on graceful degradation when elicitation is unsupported. Pseudo-code: `ci: run unit -> integration -> build images -> publish artifacts`.",
+        "testStrategy": "Run the full test matrix in CI, including unit tests, integration tests, and a smoke deploy build. Validate README examples match actual CLI behavior and that package/container publish workflows authenticate correctly.",
+        "priority": "medium",
+        "dependencies": [
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "19"
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2026-05-21T14:13:23.308Z",
+      "taskCount": 20,
+      "completedCount": 0,
+      "tags": [
+        "master"
+      ]
+    }
+  }
+}
