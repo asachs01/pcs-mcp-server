@@ -9,9 +9,9 @@
         "testStrategy": "Verify `npm install`, `npm run build`, and `npm start` work locally. Confirm generated dist files exist and package metadata resolves correctly. Run a smoke test that imports the entrypoint without runtime errors.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [],
-        "updatedAt": "2026-05-21T14:13:23.308Z"
+        "updatedAt": "2026-05-21T14:17:56.664Z"
       },
       {
         "id": "2",
@@ -23,8 +23,9 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-05-21T14:17:58.422Z"
       },
       {
         "id": "3",
@@ -49,8 +50,9 @@
         "dependencies": [
           "3"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-05-21T14:18:00.154Z"
       },
       {
         "id": "5",
@@ -63,8 +65,9 @@
           "3",
           "4"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-05-21T14:18:01.841Z"
       },
       {
         "id": "6",
@@ -76,8 +79,9 @@
         "dependencies": [
           "2"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-05-21T14:18:18.801Z"
       },
       {
         "id": "7",
@@ -118,8 +122,9 @@
           "1",
           "2"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-05-21T14:18:20.544Z"
       },
       {
         "id": "10",
@@ -145,8 +150,9 @@
         "dependencies": [
           "10"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-05-21T14:18:03.549Z"
       },
       {
         "id": "12",
@@ -158,8 +164,9 @@
         "dependencies": [
           "10"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-05-21T14:18:22.394Z"
       },
       {
         "id": "13",
@@ -172,8 +179,9 @@
           "5",
           "9"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-05-21T14:18:05.266Z"
       },
       {
         "id": "14",
@@ -188,8 +196,9 @@
           "9",
           "13"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "in-progress",
+        "subtasks": [],
+        "updatedAt": "2026-05-21T14:18:24.209Z"
       },
       {
         "id": "15",
@@ -289,9 +298,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-21T14:13:23.308Z",
+      "lastModified": "2026-05-21T14:18:24.210Z",
       "taskCount": 20,
-      "completedCount": 0,
+      "completedCount": 9,
       "tags": [
         "master"
       ]
