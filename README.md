@@ -1,5 +1,7 @@
 # @canticle/pcs-mcp-server
 
+[![CI](https://github.com/asachs01/pcs-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/asachs01/pcs-mcp-server/actions/workflows/ci.yml)
+
 A [Model Context Protocol](https://modelcontextprotocol.io) server for **Planning Center Services**. Plan worship services, manage songs, and schedule volunteers through natural-language conversations in any MCP-compatible client (Claude Desktop, Claude Code, Claude.ai connectors, MCP Inspector, etc.).
 
 > **Status:** Phase 1 (MVP) in active development. See [`.taskmaster/docs/prd.txt`](.taskmaster/docs/prd.txt) for the full product spec.
