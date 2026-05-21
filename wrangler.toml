@@ -1,5 +1,20 @@
 name = "pcs-mcp-server"
-# TODO: Worker adapter is Phase 4 — this config is a placeholder for the deploy button
 main = "dist/worker.js"
 compatibility_date = "2026-05-21"
 compatibility_flags = ["nodejs_compat"]
+
+# Environment variables - set these as Wrangler secrets:
+# wrangler secret put PCO_PAT_APP_ID
+# wrangler secret put PCO_PAT_SECRET
+# Or for OAuth:
+# wrangler secret put PCO_OAUTH_CLIENT_ID
+# wrangler secret put PCO_OAUTH_CLIENT_SECRET
+
+# Optional environment variables that can be set directly:
+[vars]
+PCO_OAUTH_REDIRECT_URI = "http://localhost:3000/callback"
+LOG_LEVEL = "info"
+
+# Note: Full MCP functionality requires Node.js due to undici dependency
+# in src/pco/client.ts. This Workers deployment returns explanatory 503s
+# for tool requests until Phase 4.1 migration to fetch-based HTTP client.

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PatAuthProvider, type AuthProvider } from "./pco/auth-provider.js";
 
 const RawConfig = z.object({
   PCO_PAT_APP_ID: z.string().optional(),
@@ -68,4 +69,13 @@ function resolveAuth(env: z.infer<typeof RawConfig>): AppConfig["auth"] {
   throw new Error(
     "Planning Center credentials missing. Set PCO_PAT_APP_ID + PCO_PAT_SECRET (PAT) or PCO_OAUTH_CLIENT_ID + PCO_OAUTH_CLIENT_SECRET (OAuth).",
   );
+}
+
+export function createAuthProvider(config: AppConfig): AuthProvider {
+  if (config.auth.mode === "pat") {
+    return new PatAuthProvider(config.auth.appId, config.auth.secret);
+  }
+
+  // OAuth mode requires initial tokens — wire token storage before constructing the auth provider
+  throw new Error("OAuth mode requires initial tokens — wire token storage before constructing the auth provider. See README OAuth section.");
 }

@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext, ToolModule } from "./registry.js";
 import type { JsonApiCollection, JsonApiSingle, PlanAttrs, ServiceTypeAttrs } from "../pco/types.js";
 import { elicitServiceType, unsupportedElicitationError } from "../elicitation/helpers.js";
+import { resolveDate } from "../utils/dates.js";
 
 const InputSchema = {
   action: z
@@ -10,8 +11,8 @@ const InputSchema = {
     .describe("Which plan action to perform."),
   serviceTypeId: z.string().optional().describe("Service type whose plans to list."),
   planId: z.string().optional().describe("Plan ID for get_plan / get_plan_items / update_plan / reorder_items."),
-  startDate: z.string().optional().describe("ISO date — filter plans on/after."),
-  endDate: z.string().optional().describe("ISO date — filter plans on/before."),
+  startDate: z.string().optional().describe("ISO date YYYY-MM-DD, or natural language like 'this Sunday' / 'next week' / 'today'."),
+  endDate: z.string().optional().describe("ISO date YYYY-MM-DD, or natural language like 'this Sunday' / 'next week' / 'today'."),
   limit: z.number().int().positive().max(100).optional().describe("Page size, default 25."),
   title: z.string().optional().describe("Title for create_plan / update_plan."),
   date: z.string().optional().describe("ISO date for create_plan / update_plan."),
@@ -79,11 +80,44 @@ const tool: ToolModule = {
             if (resolved.error) return resolved.error;
             const effectiveServiceType = resolved.serviceTypeId;
 
+            let resolvedStartDate = startDate;
+            let resolvedEndDate = endDate;
+
+            if (startDate) {
+              const startResolution = resolveDate(startDate);
+              if (startResolution.ambiguous) {
+                return errorResult(startResolution.interpretation);
+              }
+              if (startResolution.date) {
+                resolvedStartDate = startResolution.date;
+              } else if (startResolution.range) {
+                resolvedStartDate = startResolution.range.start;
+                if (!endDate) {
+                  resolvedEndDate = startResolution.range.end;
+                }
+              }
+            }
+
+            if (endDate) {
+              const endResolution = resolveDate(endDate);
+              if (endResolution.ambiguous) {
+                return errorResult(endResolution.interpretation);
+              }
+              if (endResolution.date) {
+                resolvedEndDate = endResolution.date;
+              } else if (endResolution.range) {
+                resolvedEndDate = endResolution.range.end;
+                if (!startDate) {
+                  resolvedStartDate = endResolution.range.start;
+                }
+              }
+            }
+
             const res = await ctx.pco.get<JsonApiCollection<PlanAttrs>>(
               `/services/v2/service_types/${effectiveServiceType}/plans`,
               {
-                "filter[after]": startDate,
-                "filter[before]": endDate,
+                "filter[after]": resolvedStartDate,
+                "filter[before]": resolvedEndDate,
                 per_page: limit ?? 25,
                 order: "sort_date",
               },

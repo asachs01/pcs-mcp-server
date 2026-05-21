@@ -1,7 +1,7 @@
 import { request } from "undici";
-import type { AppConfig } from "../config.js";
 import type { Logger } from "../logger.js";
 import { RateLimiter } from "./rate-limiter.js";
+import type { AuthProvider } from "./auth-provider.js";
 
 const BASE_URL = "https://api.planningcenteronline.com";
 
@@ -11,16 +11,18 @@ export interface PcoError extends Error {
 }
 
 export class PcoClient {
-  private readonly authHeader: string;
   private readonly limiter: RateLimiter;
 
   constructor(
-    private readonly config: AppConfig,
+    private readonly authProvider: AuthProvider,
     private readonly logger: Logger,
+    defaults?: { rateLimitCapacity?: number; rateLimitWindowMs?: number },
   ) {
-    this.authHeader = buildAuthHeader(config);
     // PCO: 100 req / 20s. Stay a hair under to leave headroom for bursts.
-    this.limiter = new RateLimiter({ capacity: 95, windowMs: 20_000 });
+    this.limiter = new RateLimiter({
+      capacity: defaults?.rateLimitCapacity ?? 95,
+      windowMs: defaults?.rateLimitWindowMs ?? 20_000,
+    });
   }
 
   async get<T>(path: string, query?: Record<string, string | number | undefined>): Promise<T> {
@@ -58,7 +60,7 @@ export class PcoClient {
     const res = await request(url.toString(), {
       method: method as "GET" | "POST" | "PATCH" | "DELETE",
       headers: {
-        Authorization: this.authHeader,
+        Authorization: await this.authProvider.getAuthHeader(),
         "Content-Type": "application/json",
         Accept: "application/json",
       },
@@ -81,14 +83,6 @@ export class PcoClient {
   }
 }
 
-function buildAuthHeader(config: AppConfig): string {
-  if (config.auth.mode === "pat") {
-    const token = Buffer.from(`${config.auth.appId}:${config.auth.secret}`).toString("base64");
-    return `Basic ${token}`;
-  }
-  // OAuth lands in Phase 4. For now, throw if reached.
-  throw new Error("OAuth auth mode not yet implemented (Phase 4).");
-}
 
 function safeJson(text: string): unknown {
   try {

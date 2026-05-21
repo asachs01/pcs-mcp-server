@@ -24,6 +24,7 @@
     "start:stdio": "node dist/index.js --transport stdio",
     "start:http": "node dist/index.js --transport http",
     "smoke": "node --env-file=.env --import tsx ./scripts/smoke.ts",
+    "inspect": "node --import tsx ./scripts/inspect.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src --ext .ts",

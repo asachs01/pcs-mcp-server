@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { PcoClient } from "./pco/client.js";
 import { registerAllTools } from "./tools/registry.js";
-import type { AppConfig } from "./config.js";
+import { createAuthProvider, type AppConfig } from "./config.js";
 import type { Logger } from "./logger.js";
 
 export async function buildServer(config: AppConfig, logger: Logger): Promise<McpServer> {
@@ -22,7 +22,8 @@ export async function buildServer(config: AppConfig, logger: Logger): Promise<Mc
     },
   );
 
-  const pco = new PcoClient(config, logger);
+  const authProvider = createAuthProvider(config);
+  const pco = new PcoClient(authProvider, logger);
   await registerAllTools(server, { pco, logger, config });
 
   return server;
