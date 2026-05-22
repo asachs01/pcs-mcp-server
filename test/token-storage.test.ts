@@ -218,7 +218,7 @@ describe("OAuthAuthProvider with TokenStorage", () => {
     provider = new OAuthAuthProvider(mockClient, null, mockStorage);
 
     await expect(provider.getAuthHeader()).rejects.toThrow(
-      "No OAuth tokens available. Run the authorize flow first."
+      "No OAuth tokens available. Run the authorize flow first.",
     );
   });
 

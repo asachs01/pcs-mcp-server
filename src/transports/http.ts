@@ -35,16 +35,21 @@ export async function startHttp(
 
         // Store state with 10-minute TTL
         pendingStates.set(state, { timestamp: Date.now() });
-        setTimeout(() => {
-          pendingStates.delete(state);
-        }, 10 * 60 * 1000);
+        setTimeout(
+          () => {
+            pendingStates.delete(state);
+          },
+          10 * 60 * 1000,
+        );
 
         const authUrl = client.buildAuthorizationUrl(state);
         logger.debug("redirecting to OAuth authorization", { state });
 
         res.redirect(302, authUrl);
       } catch (error) {
-        logger.error("OAuth authorization failed", { error: error instanceof Error ? error.message : String(error) });
+        logger.error("OAuth authorization failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         res.status(500).json({ error: "OAuth authorization failed" });
       }
     });
@@ -97,7 +102,9 @@ export async function startHttp(
           </html>
         `);
       } catch (error) {
-        logger.error("OAuth token exchange failed", { error: error instanceof Error ? error.message : String(error) });
+        logger.error("OAuth token exchange failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         res.status(500).json({ error: "Token exchange failed" });
       }
     });

@@ -15,9 +15,7 @@ export function createLogger(level: Level): Logger {
   const threshold = LEVELS[level];
   const write = (lvl: Level, msg: string, meta?: Record<string, unknown>) => {
     if (LEVELS[lvl] > threshold) return;
-    const line = meta
-      ? `[${lvl}] ${msg} ${JSON.stringify(meta)}`
-      : `[${lvl}] ${msg}`;
+    const line = meta ? `[${lvl}] ${msg} ${JSON.stringify(meta)}` : `[${lvl}] ${msg}`;
     process.stderr.write(line + "\n");
   };
   return {

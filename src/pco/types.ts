@@ -8,7 +8,10 @@ export interface JsonApiResource<TAttrs = Record<string, unknown>, TRel = Record
   links?: Record<string, string>;
 }
 
-export interface JsonApiCollection<TAttrs = Record<string, unknown>, TRel = Record<string, unknown>> {
+export interface JsonApiCollection<
+  TAttrs = Record<string, unknown>,
+  TRel = Record<string, unknown>,
+> {
   data: JsonApiResource<TAttrs, TRel>[];
   meta?: { total_count?: number; count?: number } & Record<string, unknown>;
   links?: { next?: string; prev?: string; self?: string };

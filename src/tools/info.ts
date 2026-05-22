@@ -7,10 +7,7 @@ const InputSchema = {
   action: z
     .enum(["list_service_types", "list_teams", "list_tag_groups", "whoami"])
     .describe("Which info action to perform."),
-  serviceTypeId: z
-    .string()
-    .optional()
-    .describe("Required when action='list_teams'."),
+  serviceTypeId: z.string().optional().describe("Required when action='list_teams'."),
 };
 
 const tool: ToolModule = {
@@ -26,9 +23,9 @@ const tool: ToolModule = {
       async ({ action, serviceTypeId }) => {
         switch (action) {
           case "whoami": {
-            const me = await ctx.pco.get<{ data: { id: string; attributes: { name: string; email_addresses?: unknown } } }>(
-              "/people/v2/me",
-            );
+            const me = await ctx.pco.get<{
+              data: { id: string; attributes: { name: string; email_addresses?: unknown } };
+            }>("/people/v2/me");
             return textResult({
               id: me.data.id,
               name: me.data.attributes.name,
@@ -55,18 +52,14 @@ const tool: ToolModule = {
               `/services/v2/service_types/${serviceTypeId}/teams`,
               { per_page: 100 },
             );
-            return textResult(
-              res.data.map((t) => ({ id: t.id, name: t.attributes.name })),
-            );
+            return textResult(res.data.map((t) => ({ id: t.id, name: t.attributes.name })));
           }
           case "list_tag_groups": {
             const res = await ctx.pco.get<JsonApiCollection<{ name: string }>>(
               "/services/v2/tag_groups",
               { per_page: 100 },
             );
-            return textResult(
-              res.data.map((g) => ({ id: g.id, name: g.attributes.name })),
-            );
+            return textResult(res.data.map((g) => ({ id: g.id, name: g.attributes.name })));
           }
         }
       },

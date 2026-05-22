@@ -17,12 +17,25 @@ const InputSchema = {
     .describe("Which team action to perform."),
   serviceTypeId: z.string().optional().describe("Service type ID (uses default if not provided)."),
   teamId: z.string().optional().describe("Team ID for list_team_members, assign_person."),
-  planId: z.string().optional().describe("Plan ID for list_plan_people, assign_person, send_scheduling_request, accept_decline."),
-  personId: z.string().optional().describe("Person ID for assign_person, check_availability, send_scheduling_request, accept_decline."),
+  planId: z
+    .string()
+    .optional()
+    .describe(
+      "Plan ID for list_plan_people, assign_person, send_scheduling_request, accept_decline.",
+    ),
+  personId: z
+    .string()
+    .optional()
+    .describe(
+      "Person ID for assign_person, check_availability, send_scheduling_request, accept_decline.",
+    ),
   positionName: z.string().optional().describe("Team position name for assign_person (optional)."),
   date: z.string().optional().describe("Date (ISO 8601) for check_availability."),
   status: z.enum(["accepted", "declined"]).optional().describe("Status for accept_decline action."),
-  planPersonId: z.string().optional().describe("Plan person ID for send_scheduling_request, accept_decline."),
+  planPersonId: z
+    .string()
+    .optional()
+    .describe("Plan person ID for send_scheduling_request, accept_decline."),
 };
 
 const tool: ToolModule = {
@@ -35,7 +48,17 @@ const tool: ToolModule = {
           "Assign people to plans, check availability, and manage scheduling notifications.",
         inputSchema: InputSchema,
       },
-      async ({ action, serviceTypeId, teamId, planId, personId, positionName, date, status, planPersonId }) => {
+      async ({
+        action,
+        serviceTypeId,
+        teamId,
+        planId,
+        personId,
+        positionName,
+        date,
+        status,
+        planPersonId,
+      }) => {
         const effectiveServiceType = serviceTypeId ?? ctx.config.defaults.serviceTypeId;
 
         switch (action) {
@@ -175,7 +198,8 @@ const tool: ToolModule = {
           }
 
           case "send_scheduling_request": {
-            if (!planPersonId) return errorResult("planPersonId is required for send_scheduling_request.");
+            if (!planPersonId)
+              return errorResult("planPersonId is required for send_scheduling_request.");
             if (!planId) return errorResult("planId is required for send_scheduling_request.");
             if (!effectiveServiceType) {
               return errorResult("serviceTypeId is required (or set PCO_DEFAULT_SERVICE_TYPE_ID).");

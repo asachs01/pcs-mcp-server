@@ -65,7 +65,7 @@ describe("loadConfig", () => {
 
   it("throws when no credentials are present", () => {
     expect(() => loadConfig()).toThrow(
-      "Planning Center credentials missing. Set PCO_PAT_APP_ID + PCO_PAT_SECRET (PAT) or PCO_OAUTH_CLIENT_ID + PCO_OAUTH_CLIENT_SECRET (OAuth)."
+      "Planning Center credentials missing. Set PCO_PAT_APP_ID + PCO_PAT_SECRET (PAT) or PCO_OAUTH_CLIENT_ID + PCO_OAUTH_CLIENT_SECRET (OAuth).",
     );
   });
 

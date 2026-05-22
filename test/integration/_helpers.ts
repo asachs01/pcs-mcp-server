@@ -73,9 +73,11 @@ export function createTestContext(config?: AppConfig): ToolContext {
 /**
  * Helper to simulate successful JSON:API collection response
  */
-export function mockJsonApiCollection(data: Array<{ id: string; attributes: Record<string, unknown> }>) {
+export function mockJsonApiCollection(
+  data: Array<{ id: string; attributes: Record<string, unknown> }>,
+) {
   return {
-    data: data.map(item => ({
+    data: data.map((item) => ({
       id: item.id,
       type: "MockResource",
       attributes: item.attributes,

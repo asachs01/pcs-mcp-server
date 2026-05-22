@@ -33,7 +33,9 @@ describe("RateLimiter", () => {
 
     // Start the blocked call in background
     let resolved = false;
-    const blockedPromise = limiter.acquire().then(() => { resolved = true; });
+    const blockedPromise = limiter.acquire().then(() => {
+      resolved = true;
+    });
 
     // Advance time by half the window - should still be blocked
     await vi.advanceTimersByTimeAsync(500);

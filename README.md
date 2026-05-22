@@ -255,7 +255,7 @@ All configuration via environment variables:
 ## Authentication modes
 
 - **Personal Access Token (PAT)** — single-user. Generate a token at [api.planningcenteronline.com/oauth/applications](https://api.planningcenteronline.com/oauth/applications) and set `PCO_PAT_APP_ID` + `PCO_PAT_SECRET`. The server uses HTTP Basic auth. This is the recommended mode for local Claude Desktop / Claude Code use.
-- **OAuth 2.0** — multi-tenant deployments. Set `PCO_OAUTH_CLIENT_ID` + `PCO_OAUTH_CLIENT_SECRET`. Full OAuth flow lands in Phase 4. See [Planning Center authentication docs](https://developer.planning.center/docs/#/overview/authentication).
+- **OAuth 2.0** — multi-tenant deployments. Set `PCO_OAUTH_CLIENT_ID` + `PCO_OAUTH_CLIENT_SECRET` and run `pcs-mcp-server authorize` to complete the browser-based authorization flow. Tokens are saved to `~/.pcs-mcp/tokens.json` and automatically refreshed. After the one-time setup, the server works normally in stdio mode with any MCP client. See [Planning Center authentication docs](https://developer.planning.center/docs/#/overview/authentication).
 
 ## Development
 

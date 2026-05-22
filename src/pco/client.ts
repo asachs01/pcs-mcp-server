@@ -70,9 +70,7 @@ export class PcoClient {
     const parsed = text ? safeJson(text) : undefined;
 
     if (res.status >= 400) {
-      const err = new Error(
-        `Planning Center API ${res.status} on ${method} ${path}`,
-      ) as PcoError;
+      const err = new Error(`Planning Center API ${res.status} on ${method} ${path}`) as PcoError;
       err.status = res.status;
       err.body = parsed ?? text;
       throw err;
@@ -81,7 +79,6 @@ export class PcoClient {
     return parsed as T;
   }
 }
-
 
 function safeJson(text: string): unknown {
   try {

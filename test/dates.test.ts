@@ -109,7 +109,7 @@ describe("resolveDate", () => {
       expect(result.date).toBeUndefined();
       expect(result.range).toEqual({
         start: "2026-05-18", // Monday of current week
-        end: "2026-05-24",   // Sunday of current week
+        end: "2026-05-24", // Sunday of current week
       });
       expect(result.ambiguous).toBe(false);
       expect(result.interpretation).toBe("this week → 2026-05-18 to 2026-05-24");
@@ -120,7 +120,7 @@ describe("resolveDate", () => {
       expect(result.date).toBeUndefined();
       expect(result.range).toEqual({
         start: "2026-05-25", // Monday of next week
-        end: "2026-05-31",   // Sunday of next week
+        end: "2026-05-31", // Sunday of next week
       });
       expect(result.ambiguous).toBe(false);
       expect(result.interpretation).toBe("next week → 2026-05-25 to 2026-05-31");
@@ -156,31 +156,47 @@ describe("resolveDate", () => {
       expect(result.date).toBeUndefined();
       expect(result.range).toBeUndefined();
       expect(result.ambiguous).toBe(true);
-      expect(result.interpretation).toBe("Could not parse 'foobar'. Try ISO format YYYY-MM-DD or phrases like 'this Sunday'.");
+      expect(result.interpretation).toBe(
+        "Could not parse 'foobar'. Try ISO format YYYY-MM-DD or phrases like 'this Sunday'.",
+      );
     });
 
     it("should handle invalid weekday names", () => {
       const result = resolveDate("this blurday", fixedNow);
       expect(result.ambiguous).toBe(true);
-      expect(result.interpretation).toBe("Could not parse 'this blurday'. Try ISO format YYYY-MM-DD or phrases like 'this Sunday'.");
+      expect(result.interpretation).toBe(
+        "Could not parse 'this blurday'. Try ISO format YYYY-MM-DD or phrases like 'this Sunday'.",
+      );
     });
 
     it("should handle malformed weekday syntax", () => {
       const result = resolveDate("this", fixedNow);
       expect(result.ambiguous).toBe(true);
-      expect(result.interpretation).toBe("Could not parse 'this'. Try ISO format YYYY-MM-DD or phrases like 'this Sunday'.");
+      expect(result.interpretation).toBe(
+        "Could not parse 'this'. Try ISO format YYYY-MM-DD or phrases like 'this Sunday'.",
+      );
     });
 
     it("should handle empty string", () => {
       const result = resolveDate("", fixedNow);
       expect(result.ambiguous).toBe(true);
-      expect(result.interpretation).toBe("Could not parse ''. Try ISO format YYYY-MM-DD or phrases like 'this Sunday'.");
+      expect(result.interpretation).toBe(
+        "Could not parse ''. Try ISO format YYYY-MM-DD or phrases like 'this Sunday'.",
+      );
     });
   });
 
   describe("edge cases", () => {
     it("should handle all weekday names", () => {
-      const weekdays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+      const weekdays = [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+      ];
       for (const weekday of weekdays) {
         const result = resolveDate(`this ${weekday}`, fixedNow);
         expect(result.ambiguous).toBe(false);

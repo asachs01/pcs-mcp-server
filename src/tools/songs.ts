@@ -3,7 +3,11 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext, ToolModule } from "./registry.js";
 import type { JsonApiCollection, JsonApiSingle } from "../pco/types.js";
 import type { SongAttrs, ArrangementAttrs } from "../pco/songs.types.js";
-import { elicitChoice, unsupportedElicitationError, type ElicitResult } from "../elicitation/helpers.js";
+import {
+  elicitChoice,
+  unsupportedElicitationError,
+  type ElicitResult,
+} from "../elicitation/helpers.js";
 
 const InputSchema = {
   action: z
@@ -19,13 +23,27 @@ const InputSchema = {
   query: z.string().optional().describe("Search query for song title."),
   author: z.string().optional().describe("Filter songs by author."),
   ccliNumber: z.string().optional().describe("Filter songs by CCLI number."),
-  songId: z.string().optional().describe("Song ID for get_song_details, list_arrangements, add_song_to_plan."),
+  songId: z
+    .string()
+    .optional()
+    .describe("Song ID for get_song_details, list_arrangements, add_song_to_plan."),
   serviceTypeId: z.string().optional().describe("Service type ID (uses default if not provided)."),
-  planId: z.string().optional().describe("Plan ID for add_song_to_plan, set_song_key, remove_song."),
+  planId: z
+    .string()
+    .optional()
+    .describe("Plan ID for add_song_to_plan, set_song_key, remove_song."),
   planItemId: z.string().optional().describe("Plan item ID for set_song_key, remove_song."),
   arrangementId: z.string().optional().describe("Arrangement ID for add_song_to_plan (optional)."),
-  key: z.string().optional().describe("Key name (e.g., 'D', 'Bb', 'F#m') for add_song_to_plan, set_song_key."),
-  position: z.number().int().positive().optional().describe("Position in plan for add_song_to_plan (optional)."),
+  key: z
+    .string()
+    .optional()
+    .describe("Key name (e.g., 'D', 'Bb', 'F#m') for add_song_to_plan, set_song_key."),
+  position: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("Position in plan for add_song_to_plan (optional)."),
 };
 
 const tool: ToolModule = {
@@ -34,7 +52,7 @@ const tool: ToolModule = {
     async function pickArrangement(songId: string): Promise<ElicitResult<string | null>> {
       const res = await ctx.pco.get<JsonApiCollection<ArrangementAttrs>>(
         `/services/v2/songs/${songId}/arrangements`,
-        { per_page: 50 }
+        { per_page: 50 },
       );
 
       if (res.data.length === 0) {
@@ -46,27 +64,55 @@ const tool: ToolModule = {
       }
 
       // Multiple arrangements - elicit choice
-      const options = res.data.map(arrangement => ({
+      const options = res.data.map((arrangement) => ({
         value: arrangement.id,
         label: arrangement.attributes.name,
-        description: [
-          arrangement.attributes.bpm ? `${arrangement.attributes.bpm} BPM` : null,
-          arrangement.attributes.length ? `${arrangement.attributes.length}s` : null,
-          arrangement.attributes.chord_chart_key ? `Key: ${arrangement.attributes.chord_chart_key}` : null
-        ].filter(Boolean).join(", ") || undefined
+        description:
+          [
+            arrangement.attributes.bpm ? `${arrangement.attributes.bpm} BPM` : null,
+            arrangement.attributes.length ? `${arrangement.attributes.length}s` : null,
+            arrangement.attributes.chord_chart_key
+              ? `Key: ${arrangement.attributes.chord_chart_key}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(", ") || undefined,
       }));
 
       return elicitChoice(server, {
-        message: "Multiple arrangements found for this song. Which arrangement would you like to use?",
+        message:
+          "Multiple arrangements found for this song. Which arrangement would you like to use?",
         title: "Select Arrangement",
-        options
+        options,
       });
     }
 
     async function pickKey(defaultKey?: string): Promise<ElicitResult<string>> {
-      const canonicalKeys = ["C", "D", "E", "F", "G", "A", "B", "Bb", "Eb", "Ab", "Db", "Gb", "F#", "C#", "Am", "Em", "Dm", "Gm", "Bm", "F#m", "C#m"];
+      const canonicalKeys = [
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "A",
+        "B",
+        "Bb",
+        "Eb",
+        "Ab",
+        "Db",
+        "Gb",
+        "F#",
+        "C#",
+        "Am",
+        "Em",
+        "Dm",
+        "Gm",
+        "Bm",
+        "F#m",
+        "C#m",
+      ];
 
-      const options = canonicalKeys.map(key => {
+      const options = canonicalKeys.map((key) => {
         const isMajor = !key.endsWith("m");
         const baseKey = key.endsWith("m") ? key.slice(0, -1) : key;
         const suffix = isMajor ? " Major" : " Minor";
@@ -81,7 +127,7 @@ const tool: ToolModule = {
       return elicitChoice(server, {
         message: "What key would you like for this song?",
         title: "Select Key",
-        options
+        options,
       });
     }
 
@@ -93,13 +139,27 @@ const tool: ToolModule = {
           "Search the song library, inspect arrangements, and add/remove/key songs in service plans.",
         inputSchema: InputSchema,
       },
-      async ({ action, query, author, ccliNumber, songId, serviceTypeId, planId, planItemId, arrangementId, key, position }) => {
+      async ({
+        action,
+        query,
+        author,
+        ccliNumber,
+        songId,
+        serviceTypeId,
+        planId,
+        planItemId,
+        arrangementId,
+        key,
+        position,
+      }) => {
         const effectiveServiceType = serviceTypeId ?? ctx.config.defaults.serviceTypeId;
 
         switch (action) {
           case "search_songs": {
             if (!query && !author && !ccliNumber) {
-              return errorResult("At least one of query, author, or ccliNumber is required for search_songs.");
+              return errorResult(
+                "At least one of query, author, or ccliNumber is required for search_songs.",
+              );
             }
 
             const params: Record<string, string | number | undefined> = {
@@ -129,9 +189,7 @@ const tool: ToolModule = {
           case "get_song_details": {
             if (!songId) return errorResult("songId is required for get_song_details.");
 
-            const res = await ctx.pco.get<JsonApiSingle<SongAttrs>>(
-              `/services/v2/songs/${songId}`,
-            );
+            const res = await ctx.pco.get<JsonApiSingle<SongAttrs>>(`/services/v2/songs/${songId}`);
 
             return textResult({
               id: res.data.id,
@@ -186,7 +244,10 @@ const tool: ToolModule = {
                 case "cancelled":
                   return errorResult("Song addition cancelled.");
                 case "unsupported":
-                  return unsupportedElicitationError("arrangementId", "Use list_arrangements to see available arrangements for this song");
+                  return unsupportedElicitationError(
+                    "arrangementId",
+                    "Use list_arrangements to see available arrangements for this song",
+                  );
               }
             }
 
@@ -197,7 +258,7 @@ const tool: ToolModule = {
               if (finalArrangementId) {
                 try {
                   const arrangementRes = await ctx.pco.get<JsonApiSingle<ArrangementAttrs>>(
-                    `/services/v2/songs/${songId}/arrangements/${finalArrangementId}`
+                    `/services/v2/songs/${songId}/arrangements/${finalArrangementId}`,
                   );
                   defaultKey = arrangementRes.data.attributes.chord_chart_key ?? undefined;
                 } catch {
@@ -215,7 +276,10 @@ const tool: ToolModule = {
                 case "cancelled":
                   return errorResult("Song addition cancelled.");
                 case "unsupported":
-                  return unsupportedElicitationError("key", "Specify a key like 'D', 'Bb', 'F#m', etc.");
+                  return unsupportedElicitationError(
+                    "key",
+                    "Specify a key like 'D', 'Bb', 'F#m', etc.",
+                  );
               }
             }
 

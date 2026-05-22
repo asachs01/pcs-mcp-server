@@ -91,9 +91,7 @@ export function createOAuthSupport(config: AppConfig): OAuthSupport {
   });
 
   // Pick storage based on env: if PCO_OAUTH_TOKENS is set, use EnvTokenStorage; otherwise FileTokenStorage
-  const storage = process.env.PCO_OAUTH_TOKENS
-    ? new EnvTokenStorage()
-    : new FileTokenStorage();
+  const storage = process.env.PCO_OAUTH_TOKENS ? new EnvTokenStorage() : new FileTokenStorage();
 
   return { client, storage };
 }

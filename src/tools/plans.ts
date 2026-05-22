@@ -1,18 +1,48 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext, ToolModule } from "./registry.js";
-import type { JsonApiCollection, JsonApiSingle, PlanAttrs, ServiceTypeAttrs } from "../pco/types.js";
-import { elicitServiceType, unsupportedElicitationError } from "../elicitation/helpers.js";
+import type {
+  JsonApiCollection,
+  JsonApiSingle,
+  PlanAttrs,
+  ServiceTypeAttrs,
+} from "../pco/types.js";
+import {
+  elicitServiceType,
+  unsupportedElicitationError,
+  elicitChoice,
+} from "../elicitation/helpers.js";
 import { resolveDate } from "../utils/dates.js";
 
 const InputSchema = {
   action: z
-    .enum(["list_plans", "get_plan", "get_plan_items", "create_plan", "update_plan", "reorder_items"])
+    .enum([
+      "list_plans",
+      "get_plan",
+      "get_plan_items",
+      "create_plan",
+      "update_plan",
+      "reorder_items",
+      "find_plan",
+    ])
     .describe("Which plan action to perform."),
   serviceTypeId: z.string().optional().describe("Service type whose plans to list."),
-  planId: z.string().optional().describe("Plan ID for get_plan / get_plan_items / update_plan / reorder_items."),
-  startDate: z.string().optional().describe("ISO date YYYY-MM-DD, or natural language like 'this Sunday' / 'next week' / 'today'."),
-  endDate: z.string().optional().describe("ISO date YYYY-MM-DD, or natural language like 'this Sunday' / 'next week' / 'today'."),
+  planId: z
+    .string()
+    .optional()
+    .describe("Plan ID for get_plan / get_plan_items / update_plan / reorder_items."),
+  startDate: z
+    .string()
+    .optional()
+    .describe(
+      "ISO date YYYY-MM-DD, or natural language like 'this Sunday' / 'next week' / 'today'.",
+    ),
+  endDate: z
+    .string()
+    .optional()
+    .describe(
+      "ISO date YYYY-MM-DD, or natural language like 'this Sunday' / 'next week' / 'today'.",
+    ),
   limit: z.number().int().positive().max(100).optional().describe("Page size, default 25."),
   title: z.string().optional().describe("Title for create_plan / update_plan."),
   date: z.string().optional().describe("ISO date for create_plan / update_plan."),
@@ -25,7 +55,7 @@ const InputSchema = {
 async function resolveServiceType(
   server: McpServer,
   ctx: ToolContext,
-  providedId: string | undefined
+  providedId: string | undefined,
 ) {
   const effectiveId = providedId ?? ctx.config.defaults.serviceTypeId;
   if (effectiveId) {
@@ -33,10 +63,9 @@ async function resolveServiceType(
   }
 
   // No service type provided and no default - attempt elicitation
-  const res = await ctx.pco.get<JsonApiCollection<ServiceTypeAttrs>>(
-    "/services/v2/service_types",
-    { per_page: 20 }
-  );
+  const res = await ctx.pco.get<JsonApiCollection<ServiceTypeAttrs>>("/services/v2/service_types", {
+    per_page: 20,
+  });
 
   if (res.data.length === 1) {
     // Single service type - use it silently
@@ -45,7 +74,7 @@ async function resolveServiceType(
 
   if (res.data.length > 1) {
     // Multiple service types - elicit choice
-    const serviceTypes = res.data.map(st => ({ id: st.id, name: st.attributes.name }));
+    const serviceTypes = res.data.map((st) => ({ id: st.id, name: st.attributes.name }));
     const elicitResult = await elicitServiceType(server, serviceTypes);
 
     if (elicitResult.status === "accepted") {
@@ -55,7 +84,12 @@ async function resolveServiceType(
       return { error: errorResult("Operation cancelled.") };
     }
     if (elicitResult.status === "unsupported") {
-      return { error: unsupportedElicitationError("serviceTypeId", "Call pcs_info action=list_service_types to discover IDs.") };
+      return {
+        error: unsupportedElicitationError(
+          "serviceTypeId",
+          "Call pcs_info action=list_service_types to discover IDs.",
+        ),
+      };
     }
   }
 
@@ -70,10 +104,20 @@ const tool: ToolModule = {
       {
         title: "Planning Center plans",
         description:
-          "Work with service plans — list upcoming plans, fetch a specific plan, get its line items, create/update plans, or reorder items.",
+          "Work with service plans — list upcoming plans, fetch a specific plan, get its line items, create/update plans, reorder items, or find a plan by date.",
         inputSchema: InputSchema,
       },
-      async ({ action, serviceTypeId, planId, startDate, endDate, limit, title, date, itemIds }) => {
+      async ({
+        action,
+        serviceTypeId,
+        planId,
+        startDate,
+        endDate,
+        limit,
+        title,
+        date,
+        itemIds,
+      }) => {
         switch (action) {
           case "list_plans": {
             const resolved = await resolveServiceType(server, ctx, serviceTypeId);
@@ -185,8 +229,8 @@ const tool: ToolModule = {
             const body: any = {
               data: {
                 type: "Plan",
-                attributes: {}
-              }
+                attributes: {},
+              },
             };
 
             if (title) body.data.attributes.title = title;
@@ -194,7 +238,7 @@ const tool: ToolModule = {
 
             const res = await ctx.pco.post<JsonApiSingle<PlanAttrs>>(
               `/services/v2/service_types/${effectiveServiceType}/plans`,
-              body
+              body,
             );
 
             return textResult({
@@ -214,8 +258,8 @@ const tool: ToolModule = {
             const body: any = {
               data: {
                 type: "Plan",
-                attributes: {}
-              }
+                attributes: {},
+              },
             };
 
             if (title !== undefined) body.data.attributes.title = title;
@@ -223,7 +267,7 @@ const tool: ToolModule = {
 
             const res = await ctx.pco.patch<JsonApiSingle<PlanAttrs>>(
               `/services/v2/service_types/${effectiveServiceType}/plans/${planId}`,
-              body
+              body,
             );
 
             return textResult({
@@ -236,7 +280,8 @@ const tool: ToolModule = {
           }
           case "reorder_items": {
             if (!planId) return errorResult("planId is required for reorder_items.");
-            if (!itemIds || itemIds.length === 0) return errorResult("itemIds array is required for reorder_items.");
+            if (!itemIds || itemIds.length === 0)
+              return errorResult("itemIds array is required for reorder_items.");
             const resolved = await resolveServiceType(server, ctx, serviceTypeId);
             if (resolved.error) return resolved.error;
             const effectiveServiceType = resolved.serviceTypeId;
@@ -246,22 +291,104 @@ const tool: ToolModule = {
               data: {
                 type: "PlanItemSortAction",
                 attributes: {
-                  sequence: itemIds
-                }
-              }
+                  sequence: itemIds,
+                },
+              },
             };
 
             await ctx.pco.post(
               `/services/v2/service_types/${effectiveServiceType}/plans/${planId}/items/sort_items`,
-              body
+              body,
             );
 
             return textResult({
               success: true,
               message: `Reordered ${itemIds.length} items`,
-              sequence: itemIds
+              sequence: itemIds,
             });
           }
+          case "find_plan": {
+            if (!date) return errorResult("date is required for find_plan.");
+
+            const resolved = await resolveServiceType(server, ctx, serviceTypeId);
+            if (resolved.error) return resolved.error;
+            const effectiveServiceType = resolved.serviceTypeId;
+
+            const dateResolution = resolveDate(date);
+            if (dateResolution.ambiguous) {
+              return errorResult(dateResolution.interpretation);
+            }
+
+            const targetDate = dateResolution.date ?? dateResolution.range?.start;
+            if (!targetDate) {
+              return errorResult("Could not resolve date for find_plan.");
+            }
+
+            const nextDay = new Date(targetDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            const nextDayStr = nextDay.toISOString().split("T")[0]!;
+
+            const res = await ctx.pco.get<JsonApiCollection<PlanAttrs>>(
+              `/services/v2/service_types/${effectiveServiceType}/plans`,
+              {
+                "filter[after]": targetDate,
+                "filter[before]": nextDayStr,
+                per_page: 10,
+                order: "sort_date",
+              },
+            );
+
+            if (res.data.length === 0) {
+              return errorResult(
+                `No plan found for service type ${effectiveServiceType} on ${targetDate}. Try \`list_plans\` with a date range.`,
+              );
+            }
+
+            if (res.data.length === 1) {
+              const plan = res.data[0]!;
+              return textResult({
+                id: plan.id,
+                title: plan.attributes.title,
+                dates: plan.attributes.dates,
+                sortDate: plan.attributes.sort_date,
+                url: plan.attributes.planning_center_url,
+              });
+            }
+
+            // 2+ plans - elicit choice
+            const plans = res.data.map((p) => ({
+              value: p.id,
+              label: `${p.attributes.title} — ${p.attributes.dates}`,
+            }));
+
+            const elicitResult = await elicitChoice(server, {
+              message: `Multiple plans found for ${targetDate}. Which one?`,
+              title: "Select Plan",
+              options: plans,
+            });
+
+            if (elicitResult.status === "accepted") {
+              const selectedPlan = res.data.find((p) => p.id === elicitResult.value)!;
+              return textResult({
+                id: selectedPlan.id,
+                title: selectedPlan.attributes.title,
+                dates: selectedPlan.attributes.dates,
+                sortDate: selectedPlan.attributes.sort_date,
+                url: selectedPlan.attributes.planning_center_url,
+              });
+            }
+            if (elicitResult.status === "declined" || elicitResult.status === "cancelled") {
+              return errorResult("Operation cancelled.");
+            }
+            if (elicitResult.status === "unsupported") {
+              const candidateIds = res.data.map((p) => p.id).join(", ");
+              return errorResult(
+                `Multiple plans found. Please call get_plan with one of these planIds: ${candidateIds}`,
+              );
+            }
+          }
+          default:
+            return errorResult(`Unknown action: ${action}`);
         }
       },
     );

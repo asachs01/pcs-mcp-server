@@ -16,21 +16,23 @@ export async function elicitChoice<T extends string>(
   args: {
     message: string;
     title: string;
-    options: Array<{ value: T; label: string; description?: string }>
-  }
+    options: Array<{ value: T; label: string; description?: string }>;
+  },
 ): Promise<ElicitResult<T>> {
   // Check if client supports elicitation - graceful degradation for Cursor/Windsurf
   const capabilities = server.server.getClientCapabilities();
   if (!capabilities?.elicitation) {
     return {
       status: "unsupported",
-      reason: "Client does not support interactive prompts"
+      reason: "Client does not support interactive prompts",
     };
   }
 
   try {
     const schema = z.object({
-      choice: z.enum(args.options.map(opt => opt.value) as [T, ...T[]]).describe("Selected option")
+      choice: z
+        .enum(args.options.map((opt) => opt.value) as [T, ...T[]])
+        .describe("Selected option"),
     });
 
     const result = await server.server.elicitInput({
@@ -42,12 +44,12 @@ export async function elicitChoice<T extends string>(
             type: "string",
             title: args.title,
             description: "Choose an option",
-            enum: args.options.map(opt => opt.value),
-            enumNames: args.options.map(opt => opt.label)
-          }
+            enum: args.options.map((opt) => opt.value),
+            enumNames: args.options.map((opt) => opt.label),
+          },
         },
-        required: ["choice"]
-      }
+        required: ["choice"],
+      },
     });
 
     if (result.action === "accept") {
@@ -70,16 +72,16 @@ export async function elicitChoice<T extends string>(
  */
 export async function elicitServiceType(
   server: McpServer,
-  serviceTypes: Array<{ id: string; name: string }>
+  serviceTypes: Array<{ id: string; name: string }>,
 ): Promise<ElicitResult<string>> {
   return elicitChoice(server, {
     message: "Multiple service types found. Which service should I work with?",
     title: "Select Service Type",
-    options: serviceTypes.map(st => ({
+    options: serviceTypes.map((st) => ({
       value: st.id,
       label: st.name,
-      description: `Service Type ID: ${st.id}`
-    }))
+      description: `Service Type ID: ${st.id}`,
+    })),
   });
 }
 
@@ -93,8 +95,8 @@ export function unsupportedElicitationError(field: string, hint: string) {
     content: [
       {
         type: "text" as const,
-        text: `This client doesn't support interactive prompts. Please pass \`${field}\` explicitly. Hint: ${hint}`
-      }
-    ]
+        text: `This client doesn't support interactive prompts. Please pass \`${field}\` explicitly. Hint: ${hint}`,
+      },
+    ],
   };
 }

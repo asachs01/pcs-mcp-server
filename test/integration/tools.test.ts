@@ -91,7 +91,7 @@ describe("Tool Integration Tests", () => {
   // Helper to simulate successful JSON:API response
   function mockJsonApiCollection(data: Array<{ id: string; attributes: Record<string, unknown> }>) {
     return {
-      data: data.map(item => ({
+      data: data.map((item) => ({
         id: item.id,
         type: "MockResource",
         attributes: item.attributes,
@@ -133,7 +133,7 @@ describe("Tool Integration Tests", () => {
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "content-type": "application/json" },
-        })
+        }),
       );
 
       // Call the tool through the mock server
@@ -166,17 +166,15 @@ describe("Tool Integration Tests", () => {
         expect.objectContaining({
           method: "GET",
           headers: expect.objectContaining({
-            "Authorization": "Basic dGVzdC1hcHAtaWQ6dGVzdC1zZWNyZXQ=", // base64 of test-app-id:test-secret
+            Authorization: "Basic dGVzdC1hcHAtaWQ6dGVzdC1zZWNyZXQ=", // base64 of test-app-id:test-secret
           }),
-        })
+        }),
       );
     });
 
     it("should verify auth header is correctly set for PAT", async () => {
       const mockResponse = mockJsonApiCollection([]);
-      mockFetch.mockResolvedValue(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
-      );
+      mockFetch.mockResolvedValue(new Response(JSON.stringify(mockResponse), { status: 200 }));
 
       await mockServer.callTool("pcs_info", {
         action: "list_service_types",
@@ -187,9 +185,9 @@ describe("Tool Integration Tests", () => {
         expect.any(String),
         expect.objectContaining({
           headers: expect.objectContaining({
-            "Authorization": "Basic dGVzdC1hcHAtaWQ6dGVzdC1zZWNyZXQ=",
+            Authorization: "Basic dGVzdC1hcHAtaWQ6dGVzdC1zZWNyZXQ=",
           }),
-        })
+        }),
       );
     });
   });
@@ -217,9 +215,7 @@ describe("Tool Integration Tests", () => {
         },
       ]);
 
-      mockFetch.mockResolvedValue(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
-      );
+      mockFetch.mockResolvedValue(new Response(JSON.stringify(mockResponse), { status: 200 }));
 
       const result = await mockServer.callTool("plan_services", {
         action: "list_plans",
@@ -241,15 +237,13 @@ describe("Tool Integration Tests", () => {
       // Verify it used the default service type ID from config
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("/services/v2/service_types/12345/plans"),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
     it("should resolve natural language dates in filter parameters", async () => {
       const mockResponse = mockJsonApiCollection([]);
-      mockFetch.mockResolvedValue(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
-      );
+      mockFetch.mockResolvedValue(new Response(JSON.stringify(mockResponse), { status: 200 }));
 
       await mockServer.callTool("plan_services", {
         action: "list_plans",
@@ -260,7 +254,7 @@ describe("Tool Integration Tests", () => {
       // that fetch was called with a filter parameter
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringMatching(/filter%5Bafter%5D=\d{4}-\d{2}-\d{2}/), // URL-encoded filter[after]=YYYY-MM-DD
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -287,7 +281,7 @@ describe("Tool Integration Tests", () => {
       ]);
 
       mockFetch.mockResolvedValue(
-        new Response(JSON.stringify(serviceTypesResponse), { status: 200 })
+        new Response(JSON.stringify(serviceTypesResponse), { status: 200 }),
       );
 
       const result = await mockServerNoDefault.callTool("plan_services", {
@@ -326,9 +320,7 @@ describe("Tool Integration Tests", () => {
         },
       ]);
 
-      mockFetch.mockResolvedValue(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
-      );
+      mockFetch.mockResolvedValue(new Response(JSON.stringify(mockResponse), { status: 200 }));
 
       const result = await mockServer.callTool("manage_songs", {
         action: "search_songs",
@@ -351,7 +343,7 @@ describe("Tool Integration Tests", () => {
       // Verify the search query was properly encoded
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("where%5Btitle%5D=Amazing"), // URL-encoded where[title]=Amazing
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
@@ -381,12 +373,8 @@ describe("Tool Integration Tests", () => {
       ]);
 
       mockFetch
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(personResponse), { status: 200 })
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(blockoutsResponse), { status: 200 })
-        );
+        .mockResolvedValueOnce(new Response(JSON.stringify(personResponse), { status: 200 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify(blockoutsResponse), { status: 200 }));
 
       const result = await mockServer.callTool("manage_team", {
         action: "check_availability",
@@ -414,12 +402,12 @@ describe("Tool Integration Tests", () => {
       expect(mockFetch).toHaveBeenNthCalledWith(
         1,
         `https://api.planningcenteronline.com/services/v2/people/${personId}`,
-        expect.any(Object)
+        expect.any(Object),
       );
       expect(mockFetch).toHaveBeenNthCalledWith(
         2,
         expect.stringContaining(`/services/v2/people/${personId}/blockouts`),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -436,12 +424,8 @@ describe("Tool Integration Tests", () => {
       const blockoutsResponse = mockJsonApiCollection([]);
 
       mockFetch
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(personResponse), { status: 200 })
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(blockoutsResponse), { status: 200 })
-        );
+        .mockResolvedValueOnce(new Response(JSON.stringify(personResponse), { status: 200 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify(blockoutsResponse), { status: 200 }));
 
       const result = await mockServer.callTool("manage_team", {
         action: "check_availability",
@@ -462,13 +446,13 @@ describe("Tool Integration Tests", () => {
       mockFetch.mockResolvedValue(
         new Response(JSON.stringify({ error: "Not found" }), {
           status: 404,
-        })
+        }),
       );
 
       await expect(
         mockServer.callTool("pcs_info", {
           action: "list_service_types",
-        })
+        }),
       ).rejects.toThrow();
     });
 
@@ -488,9 +472,7 @@ describe("Tool Integration Tests", () => {
   describe("Authentication headers", () => {
     it("should include correct Content-Type and Accept headers", async () => {
       const mockResponse = mockJsonApiCollection([]);
-      mockFetch.mockResolvedValue(
-        new Response(JSON.stringify(mockResponse), { status: 200 })
-      );
+      mockFetch.mockResolvedValue(new Response(JSON.stringify(mockResponse), { status: 200 }));
 
       await mockServer.callTool("pcs_info", {
         action: "list_service_types",
@@ -501,9 +483,9 @@ describe("Tool Integration Tests", () => {
         expect.objectContaining({
           headers: expect.objectContaining({
             "Content-Type": "application/json",
-            "Accept": "application/json",
+            Accept: "application/json",
           }),
-        })
+        }),
       );
     });
   });

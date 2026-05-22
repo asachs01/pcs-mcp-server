@@ -4,13 +4,13 @@ export interface OAuthCredentials {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
-  scopes?: string[];  // default ["services", "people"]
+  scopes?: string[]; // default ["services", "people"]
 }
 
 export interface OAuthTokens {
   accessToken: string;
   refreshToken: string;
-  expiresAt: number;  // epoch ms
+  expiresAt: number; // epoch ms
   tokenType: "Bearer";
 }
 
@@ -61,7 +61,7 @@ export class OAuthClient {
       throw new Error(`Token exchange failed: ${response.status} ${errorText}`);
     }
 
-    const tokenData = await response.json() as {
+    const tokenData = (await response.json()) as {
       access_token: string;
       refresh_token: string;
       expires_in: number;
@@ -71,7 +71,7 @@ export class OAuthClient {
     return {
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
-      expiresAt: Date.now() + (tokenData.expires_in * 1000),
+      expiresAt: Date.now() + tokenData.expires_in * 1000,
       tokenType: "Bearer",
     };
   }
@@ -99,7 +99,7 @@ export class OAuthClient {
       throw new Error(`Token refresh failed: ${response.status} ${errorText}`);
     }
 
-    const tokenData = await response.json() as {
+    const tokenData = (await response.json()) as {
       access_token: string;
       refresh_token: string;
       expires_in: number;
@@ -109,7 +109,7 @@ export class OAuthClient {
     return {
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
-      expiresAt: Date.now() + (tokenData.expires_in * 1000),
+      expiresAt: Date.now() + tokenData.expires_in * 1000,
       tokenType: "Bearer",
     };
   }
