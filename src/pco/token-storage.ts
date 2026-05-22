@@ -103,3 +103,50 @@ export class MemoryTokenStorage implements TokenStorage {
     this.tokens = null;
   }
 }
+
+/**
+ * Minimal KV interface for Cloudflare Workers KV namespace.
+ * Avoids pulling in @cloudflare/workers-types as a dependency.
+ */
+interface KVNamespaceLike {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string): Promise<void>;
+  delete(key: string): Promise<void>;
+}
+
+/**
+ * Cloudflare Workers KV-backed token storage. Tokens survive isolate
+ * cold starts. The bound KV namespace is passed in; the caller decides
+ * the binding name (e.g. PCS_TOKENS). Storage key defaults to
+ * "pcs:oauth:tokens" — single-tenant assumption, fine for personal use.
+ */
+export class KvTokenStorage implements TokenStorage {
+  private readonly kv: KVNamespaceLike;
+  private readonly key: string;
+
+  constructor(kv: KVNamespaceLike, key?: string) {
+    this.kv = kv;
+    this.key = key ?? "pcs:oauth:tokens";
+  }
+
+  async load(): Promise<OAuthTokens | null> {
+    try {
+      const value = await this.kv.get(this.key);
+      if (!value) {
+        return null;
+      }
+      return JSON.parse(value) as OAuthTokens;
+    } catch (error) {
+      console.warn("Failed to parse tokens from KV storage:", error);
+      return null;
+    }
+  }
+
+  async save(tokens: OAuthTokens): Promise<void> {
+    await this.kv.put(this.key, JSON.stringify(tokens));
+  }
+
+  async clear(): Promise<void> {
+    await this.kv.delete(this.key);
+  }
+}

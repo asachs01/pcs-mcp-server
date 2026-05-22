@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import type { OAuthTokens } from "../src/pco/oauth.js";
-import { MemoryTokenStorage, EnvTokenStorage, FileTokenStorage } from "../src/pco/token-storage.js";
+import { MemoryTokenStorage, EnvTokenStorage, FileTokenStorage, KvTokenStorage } from "../src/pco/token-storage.js";
 import { OAuthAuthProvider } from "../src/pco/auth-provider.js";
 
 const mockTokens: OAuthTokens = {
@@ -234,5 +234,85 @@ describe("OAuthAuthProvider with TokenStorage", () => {
     const header = await provider.getAuthHeader();
     expect(header).toBe(`Bearer ${mockTokens.accessToken}`);
     expect(loadCalled).toBe(false);
+  });
+});
+
+describe("KvTokenStorage", () => {
+  let mockKv: any;
+  let storage: KvTokenStorage;
+
+  beforeEach(() => {
+    mockKv = {
+      get: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+    storage = new KvTokenStorage(mockKv);
+  });
+
+  it("uses default key when none provided", () => {
+    const defaultStorage = new KvTokenStorage(mockKv);
+    expect(defaultStorage).toBeInstanceOf(KvTokenStorage);
+  });
+
+  it("uses custom key when provided", () => {
+    const customStorage = new KvTokenStorage(mockKv, "custom:key");
+    expect(customStorage).toBeInstanceOf(KvTokenStorage);
+  });
+
+  it("loads null when KV returns null", async () => {
+    mockKv.get.mockResolvedValue(null);
+
+    const result = await storage.load();
+
+    expect(result).toBe(null);
+    expect(mockKv.get).toHaveBeenCalledWith("pcs:oauth:tokens");
+  });
+
+  it("loads and parses tokens from KV", async () => {
+    mockKv.get.mockResolvedValue(JSON.stringify(mockTokens));
+
+    const result = await storage.load();
+
+    expect(result).toEqual(mockTokens);
+    expect(mockKv.get).toHaveBeenCalledWith("pcs:oauth:tokens");
+  });
+
+  it("returns null and logs warning on parse error", async () => {
+    const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockKv.get.mockResolvedValue("invalid-json");
+
+    const result = await storage.load();
+
+    expect(result).toBe(null);
+    expect(consoleSpy).toHaveBeenCalledWith("Failed to parse tokens from KV storage:", expect.any(Error));
+
+    consoleSpy.mockRestore();
+  });
+
+  it("saves tokens as JSON to KV", async () => {
+    await storage.save(mockTokens);
+
+    expect(mockKv.put).toHaveBeenCalledWith("pcs:oauth:tokens", JSON.stringify(mockTokens));
+  });
+
+  it("clears tokens from KV", async () => {
+    await storage.clear();
+
+    expect(mockKv.delete).toHaveBeenCalledWith("pcs:oauth:tokens");
+  });
+
+  it("uses custom key for all operations", async () => {
+    const customStorage = new KvTokenStorage(mockKv, "custom:key");
+
+    mockKv.get.mockResolvedValue(JSON.stringify(mockTokens));
+
+    await customStorage.load();
+    await customStorage.save(mockTokens);
+    await customStorage.clear();
+
+    expect(mockKv.get).toHaveBeenCalledWith("custom:key");
+    expect(mockKv.put).toHaveBeenCalledWith("custom:key", JSON.stringify(mockTokens));
+    expect(mockKv.delete).toHaveBeenCalledWith("custom:key");
   });
 });

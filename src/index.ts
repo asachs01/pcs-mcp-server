@@ -5,8 +5,22 @@ import { buildServer } from "./server.js";
 import { startStdio } from "./transports/stdio.js";
 import { startHttp } from "./transports/http.js";
 import { runAuthorizeFlow } from "./cli/authorize.js";
+import { printHelp, printVersion } from "./cli/help.js";
 
 async function main() {
+  // Check for help and version flags first
+  const firstArg = process.argv[2];
+
+  if (firstArg === "--version" || firstArg === "-v") {
+    await printVersion();
+    process.exit(0);
+  }
+
+  if (firstArg === "--help" || firstArg === "-h" || firstArg === "help") {
+    printHelp();
+    process.exit(0);
+  }
+
   // Check for subcommands before loading config
   const subcommand = process.argv[2];
 

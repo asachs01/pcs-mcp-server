@@ -7,9 +7,19 @@ import { registerAllTools } from "./tools/registry.js";
 import { handleWorkersStreamableHttp } from "./workers-transport.js";
 import { type AppConfig } from "./config.js";
 import { createLogger, type Logger } from "./logger.js";
-import { MemoryTokenStorage } from "./pco/token-storage.js";
+import { MemoryTokenStorage, KvTokenStorage } from "./pco/token-storage.js";
 import { PatAuthProvider, OAuthAuthProvider } from "./pco/auth-provider.js";
 import { OAuthClient } from "./pco/oauth.js";
+
+/**
+ * Minimal KV interface for Cloudflare Workers KV namespace.
+ * Avoids pulling in @cloudflare/workers-types as a dependency.
+ */
+interface KVNamespaceLike {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string): Promise<void>;
+  delete(key: string): Promise<void>;
+}
 
 // Workers environment interface
 interface Env {
@@ -20,6 +30,7 @@ interface Env {
   PCO_OAUTH_REDIRECT_URI?: string;
   PCO_DEFAULT_SERVICE_TYPE_ID?: string;
   LOG_LEVEL?: string;
+  PCS_TOKENS?: KVNamespaceLike;
 }
 
 // In-memory session storage per isolate
@@ -107,7 +118,7 @@ async function handlePostRequest(request: Request, env: Env): Promise<Response> 
       if (!serverInstance) {
         const config = buildConfigFromEnv(env);
         const logger = createLogger(config.logLevel);
-        serverInstance = await buildWorkersServer(config, logger);
+        serverInstance = await buildWorkersServer(config, logger, env);
       }
 
       // Create new transport for this session
@@ -241,23 +252,30 @@ function resolveAuth(env: Env): AppConfig["auth"] {
   );
 }
 
-function createWorkersAuthProvider(config: AppConfig) {
+function createWorkersAuthProvider(config: AppConfig, env: Env) {
   if (config.auth.mode === "pat") {
     return new PatAuthProvider(config.auth.appId, config.auth.secret);
   }
 
-  // For OAuth in Workers, use MemoryTokenStorage instead of FileTokenStorage
+  // For OAuth in Workers, use KV storage when bound, fallback to memory storage
   const client = new OAuthClient({
     clientId: config.auth.clientId,
     clientSecret: config.auth.clientSecret,
     redirectUri: config.auth.redirectUri,
   });
 
-  const storage = new MemoryTokenStorage();
+  let storage;
+  if (env.PCS_TOKENS) {
+    storage = new KvTokenStorage(env.PCS_TOKENS);
+  } else {
+    storage = new MemoryTokenStorage();
+    console.warn("No KV namespace bound for PCS_TOKENS - tokens won't persist across cold starts");
+  }
+
   return new OAuthAuthProvider(client, null, storage);
 }
 
-async function buildWorkersServer(config: AppConfig, logger: Logger): Promise<McpServer> {
+async function buildWorkersServer(config: AppConfig, logger: Logger, env: Env): Promise<McpServer> {
   const server = new McpServer(
     {
       name: "pcs-mcp-server",
@@ -275,7 +293,7 @@ async function buildWorkersServer(config: AppConfig, logger: Logger): Promise<Mc
     },
   );
 
-  const authProvider = createWorkersAuthProvider(config);
+  const authProvider = createWorkersAuthProvider(config, env);
   const pco = new PcoClient(authProvider, logger);
   await registerAllTools(server, { pco, logger, config });
 

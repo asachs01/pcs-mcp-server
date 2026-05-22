@@ -60,6 +60,23 @@ Add to `claude_desktop_config.json`:
 claude mcp add planning-center -- npx -y @asachs01/pcs-mcp-server
 ```
 
+## Installing from GitHub Packages
+
+This package publishes to GitHub Packages (`npm.pkg.github.com`), not the public npm registry. You need a GitHub Personal Access Token with `read:packages` scope.
+
+Configure `.npmrc` in your project root or globally at `~/.npmrc`:
+
+```
+@asachs01:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+Then `npm install @asachs01/pcs-mcp-server` works normally.
+
+For Claude Desktop / Claude Code users using `npx -y`, the same `.npmrc` configuration is required in your global npm config (`~/.npmrc`).
+
+The Docker image at `ghcr.io/asachs01/pcs-mcp-server:latest` requires no authentication for public images.
+
 ## Tool reference
 
 Each Level-0 tool takes an `action` enum plus action-specific parameters.
