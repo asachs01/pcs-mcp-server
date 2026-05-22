@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Known limitations
-- Cloudflare Workers transport returns 503 on MCP tool calls. PCO API access already works in Workers (the client is `fetch`-based), but the MCP SDK's Streamable HTTP transport is Express-coupled — a Workers-native transport adapter is the remaining piece for full Workers deployment.
+## [0.1.1] — 2026-05-22
+
+### Changed
+- **Package renamed from `@canticle/pcs-mcp-server` to `@asachs01/pcs-mcp-server`** so the GitHub Packages scope matches the repo owner (the `@canticle` namespace doesn't exist). Update your install commands and Claude Desktop config.
+
+### Added
+- **Cloudflare Workers transport is now functional.** The SDK's `WebStandardStreamableHTTPServerTransport` handles Web Standards Request/Response natively; the worker now serves MCP tool calls end-to-end. OAuth in Workers uses `MemoryTokenStorage` (per-isolate), so token refreshes don't persist across cold starts — for production OAuth on Workers, plan an external token store (KV / D1).
+- **`pcs-mcp-server authorize` CLI subcommand** — one-time browser-loopback OAuth flow for stdio deployments (Claude Desktop, Claude Code). Spins up an ephemeral localhost callback on a random port, opens the browser, validates CSRF state, persists tokens to `~/.pcs-mcp/tokens.json`. 5-minute timeout.
+- **`plan_services` action `find_plan`** — locate a single plan from a date hint (`"this Sunday"`, ISO, etc.). 0 matches → helpful error; 1 → return; 2+ → `elicitChoice` with structured-error fallback. Closes the discovery gap for the "add song to Sunday's service" UX.
+- **ESLint v9 flat config + Prettier 3** — `npm run lint` and `npm run format` are wired and clean (0 errors).
 
 ## [0.1.0] — 2026-05-21
 

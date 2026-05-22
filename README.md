@@ -1,4 +1,4 @@
-# @canticle/pcs-mcp-server
+# @asachs01/pcs-mcp-server
 
 [![CI](https://github.com/asachs01/pcs-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/asachs01/pcs-mcp-server/actions/workflows/ci.yml)
 [![Deploy to DigitalOcean](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/asachs01/pcs-mcp-server/tree/main)
@@ -27,7 +27,7 @@ Lets church staff drive Planning Center Services from natural language. Say "Add
 ## Quick start (local, stdio)
 
 ```bash
-npm install -g @canticle/pcs-mcp-server
+npm install -g @asachs01/pcs-mcp-server
 
 export PCO_PAT_APP_ID=...
 export PCO_PAT_SECRET=...
@@ -44,7 +44,7 @@ Add to `claude_desktop_config.json`:
   "mcpServers": {
     "planning-center": {
       "command": "npx",
-      "args": ["-y", "@canticle/pcs-mcp-server"],
+      "args": ["-y", "@asachs01/pcs-mcp-server"],
       "env": {
         "PCO_PAT_APP_ID": "your-app-id",
         "PCO_PAT_SECRET": "your-secret"
@@ -57,7 +57,7 @@ Add to `claude_desktop_config.json`:
 ### Claude Code
 
 ```bash
-claude mcp add planning-center -- npx -y @canticle/pcs-mcp-server
+claude mcp add planning-center -- npx -y @asachs01/pcs-mcp-server
 ```
 
 ## Tool reference
