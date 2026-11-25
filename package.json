@@ -50,7 +50,7 @@
     "url": "git+https://github.com/canticle/pcs-mcp-server.git"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "express": "^4.21.0",
     "zod": "^3.23.8"
   },
